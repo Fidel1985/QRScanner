@@ -1,25 +1,31 @@
 package com.fidel;
 
-import com.google.zxing.*;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.ChecksumException;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.FormatException;
+import com.google.zxing.LuminanceSource;
+import com.google.zxing.NotFoundException;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
-import com.google.zxing.common.BitMatrix;
+import com.google.zxing.common.DecoderResult;
 import com.google.zxing.common.DetectorResult;
 import com.google.zxing.common.HybridBinarizer;
-import com.google.zxing.multi.qrcode.detector.MultiDetector;
+import com.google.zxing.datamatrix.decoder.Decoder;
+import com.google.zxing.datamatrix.detector.Detector;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.tools.imageio.ImageIOUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.EnumMap;
+import java.util.Map;
 
 public class Main {
-    private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
         System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider");
@@ -41,18 +47,18 @@ public class Main {
                 LuminanceSource source = new BufferedImageLuminanceSource(bim);
                 BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(source));
 
-
                 try {
-                    //BitMatrix bitMatrix = binaryBitmap.getBlackMatrix();
-                    //MultiDetector detector = new MultiDetector(bitMatrix);
-                    //DetectorResult detectorResult = detector.detect();
+                    Map<DecodeHintType, Object> hintsMap = new EnumMap<>(DecodeHintType.class);
+                    hintsMap.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
+                    hintsMap.put(DecodeHintType.POSSIBLE_FORMATS, BarcodeFormat.DATA_MATRIX);
+                    Detector detector = new Detector(binaryBitmap.getBlackMatrix());
 
-                    Result result = new MultiFormatReader().decode(binaryBitmap);
-                    //QRCodeReader qrCodeReader = new QRCodeReader();
-                    //Result result = qrCodeReader.decode(bitmap);
+                    Decoder decoder = new Decoder();
+                    DetectorResult detectorResult = detector.detect();
+                    DecoderResult result = decoder.decode(detectorResult.getBits());
                     System.out.println(result.getText());
-                } catch (NotFoundException ex) {
-                //} catch (NotFoundException | FormatException ex) {
+                //} catch (NotFoundException ex) {
+                } catch (NotFoundException | FormatException | ChecksumException ex) {
                     System.out.println("Can't decode page: " + pageCounter);
                 }
 
@@ -69,7 +75,7 @@ public class Main {
             if (document != null) {
                 try {
                     document.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
             }
         }
